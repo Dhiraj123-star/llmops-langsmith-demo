@@ -1,0 +1,10 @@
+# Environment variables (contains API keys)
+.env
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Pytest
+.pytest_cache/
