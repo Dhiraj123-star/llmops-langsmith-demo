@@ -6,7 +6,9 @@ A simple project demonstrating core LLMOps concepts: tracing, evaluation, and mo
 
 - Runs an LLM chain (LangChain + OpenAI) that automatically logs every call to LangSmith
 - Creates a golden evaluation dataset
-- Runs automated evaluations against that dataset and scores the results
+- Runs automated evaluations against that dataset using two evaluators:
+  - **Keyword match** — simple heuristic check
+  - **LLM-as-judge** — uses `gpt-4o-mini` to judge whether the answer conveys the expected concept
 
 ## Project Structure
 
@@ -14,6 +16,7 @@ A simple project demonstrating core LLMOps concepts: tracing, evaluation, and mo
 llmops-langsmith-demo/
 ├── .env                    # API keys (never commit this)
 ├── requirements.txt
+├── pytest.ini               # Fixes module resolution for tests
 ├── src/
 │   ├── __init__.py
 │   ├── chain.py             # The LLM chain being traced
@@ -21,7 +24,7 @@ llmops-langsmith-demo/
 │   └── run.py                # Entry point to run queries
 ├── evaluation/
 │   ├── dataset.py            # Creates eval dataset in LangSmith
-│   └── evaluate.py           # Runs evaluations against the dataset
+│   └── evaluate.py           # Runs evaluations: keyword match + LLM-as-judge
 ├── tests/
 │   └── test_chain.py
 └── README.md
@@ -62,7 +65,9 @@ Creates `llmops-demo-eval-set` in LangSmith (skips if it already exists).
 ```bash
 python -m evaluation.evaluate
 ```
-Runs the chain against every example in the dataset and scores it with a keyword-match evaluator.
+Runs the chain against every example in the dataset and scores each response with:
+- `keyword_match` — 1 if expected keyword is present, else 0
+- `llm_judge` — 1 if an LLM judges the answer as conceptually correct, else 0
 
 **Run tests**
 ```bash
@@ -74,7 +79,7 @@ pytest tests/
 Go to [smith.langchain.com](https://smith.langchain.com) and open your project (`llmops-demo`):
 
 - **Traces tab** — every LLM call, latency, token usage, cost
-- **Datasets & Testing** — your eval set and experiment run scores
+- **Datasets & Testing** — your eval set, experiment runs, and both evaluator scores side-by-side
 
 ## Troubleshooting
 
@@ -86,7 +91,15 @@ Go to [smith.langchain.com](https://smith.langchain.com) and open your project (
 - Confirm `LANGCHAIN_TRACING_V2=true` is set.
 - Traces can take a few seconds to appear in the dashboard.
 
+**`ModuleNotFoundError: No module named 'src'` when running pytest**
+- Make sure `pytest.ini` exists at the project root with:
+  ```
+  [pytest]
+  pythonpath = .
+  ```
+- Make sure `src/__init__.py` exists.
+
 ## Notes
 
 - Free LangSmith Developer plan: 5,000 traces/month, 14-day retention — more than enough for this project.
-- Each evaluation run also counts as traces.
+- Each evaluation run counts as traces, and the LLM-as-judge evaluator makes an extra OpenAI call per example (roughly doubles API cost per eval run).
