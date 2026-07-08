@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    command: python -m src.run
+
+  eval:
+    build: .
+    env_file:
+      - .env
+    command: python -m evaluation.evaluate
+
+  test:
+    build: .
+    env_file:
+      - .env
+    command: pytest tests/
